@@ -71,3 +71,30 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down -v
+
+  publish:
+    name: Publish images
+    needs: [compose]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: |
+          for service in backend frontend; do
+            image="ghcr.io/${OWNER,,}/genai-rag-${service}"
+            docker build -t "$image:$SHA" -t "$image:latest" "$service"
+            docker push "$image:$SHA"
+            docker push "$image:latest"
+          done
