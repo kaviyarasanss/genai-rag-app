@@ -54,3 +54,20 @@ jobs:
             echo "$image runs as $user"
             test "$user" != root
           done
+
+  compose:
+    name: Compose smoke test
+    needs: [images]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Start the stack
+        run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Check the success criteria
+        run: bash scripts/smoke-test.sh
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
