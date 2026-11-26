@@ -11,6 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from .config import load_settings
 from .embeddings import FastEmbedEmbedder
 from .llm import ExtractiveLLM, OpenAICompatibleLLM
+from .metrics import instrument
 from .rag import RagService
 from .vector_store import VectorStore
 
@@ -54,6 +55,7 @@ def create_app(service: RagService | None = None, max_upload_bytes: int | None =
     app = FastAPI(
         title="GenAI RAG backend", lifespan=lifespan, root_path=os.getenv("ROOT_PATH", "")
     )
+    instrument(app)
 
     @app.get("/health")
     def health() -> dict:
