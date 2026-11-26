@@ -89,23 +89,33 @@ All settings are environment variables. Secrets go in `.env`, which Git ignores;
 
 ## Success criteria and how they are checked
 
-`scripts/smoke-test.sh` runs against a started stack, locally or in CI:
+Checked by `scripts/smoke-test.sh` against a started stack, locally or in CI. If `HTTP_PORT` is not 80, run it as `BASE_URL=http://localhost:<port> bash scripts/smoke-test.sh`.
 
 | Criterion | Check |
 |---|---|
 | Accessible only through Nginx | `/api/health` and `/` answer through Nginx; ports 8000, 8501 and 6333 are not reachable from the host |
 | Upload and ask work | Uploads a document and finds its content in the answer |
 | Data persists after restart | `docker compose down`, `up` again, and the same question still finds the document |
-| No secrets in the repo | `.env` is in `.gitignore`; only `.env.example` (no values) is committed; images are built with `.dockerignore` excluding `.env*` |
-| Pipeline passes on every push | All CI jobs above |
+
+Ensured by the repository setup rather than by the script:
+
+| Criterion | How |
+|---|---|
+| No secrets in the repo | `.env` is in `.gitignore`; only `.env.example`, with empty values, is committed; `.dockerignore` keeps `.env*` out of the images |
+| Pipeline passes | The CI jobs above run on every pull request and every push to `main` |
 
 ## Development
 
 The backend and frontend can be linted and tested without installing Python locally:
 
 ```bash
+# Backend: lint and tests
 docker run --rm -v "$PWD/backend":/app -w /app python:3.12-slim \
   sh -c "pip install -q -r requirements-dev.txt && ruff check . && pytest -q"
+
+# Frontend: lint
+docker run --rm -v "$PWD/frontend":/app -w /app python:3.12-slim \
+  sh -c "pip install -q ruff==0.17.6 && ruff check . && ruff format --check ."
 ```
 
 ```
