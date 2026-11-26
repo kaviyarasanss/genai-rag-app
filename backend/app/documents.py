@@ -1,6 +1,7 @@
 import io
 
 from pypdf import PdfReader
+from pypdf.errors import PyPdfError
 
 SUPPORTED_EXTENSIONS = (".txt", ".md", ".pdf")
 
@@ -9,8 +10,11 @@ def extract_text(filename: str, data: bytes) -> str:
     """Return the plain text of an uploaded file."""
     name = filename.lower()
     if name.endswith(".pdf"):
-        reader = PdfReader(io.BytesIO(data))
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
+        try:
+            reader = PdfReader(io.BytesIO(data))
+            return "\n".join(page.extract_text() or "" for page in reader.pages)
+        except PyPdfError as error:
+            raise ValueError("The PDF could not be read") from error
     if name.endswith((".txt", ".md")):
         return data.decode("utf-8", errors="replace")
     raise ValueError(f"Unsupported file type. Use one of: {', '.join(SUPPORTED_EXTENSIONS)}")

@@ -1,6 +1,12 @@
+import logging
 from typing import Protocol
+from urllib.parse import urlparse
 
 import httpx
+
+logger = logging.getLogger("rag")
+
+LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 SYSTEM_PROMPT = (
     "You answer questions using only the context provided. "
@@ -20,6 +26,11 @@ class OpenAICompatibleLLM:
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
+        url = urlparse(self.base_url)
+        if api_key and url.scheme == "http" and url.hostname not in LOOPBACK_HOSTS:
+            logger.warning(
+                "LLM_BASE_URL uses plain http for %s: the API key is sent unencrypted", url.hostname
+            )
 
     def answer(self, question: str, contexts: list[str]) -> str:
         context = "\n\n---\n\n".join(contexts)

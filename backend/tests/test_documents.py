@@ -33,3 +33,8 @@ def test_text_files_are_decoded():
 def test_unsupported_files_are_rejected():
     with pytest.raises(ValueError, match="Unsupported file type"):
         extract_text("image.png", b"data")
+
+
+def test_broken_pdf_is_rejected_as_invalid_input():
+    with pytest.raises(ValueError, match="PDF could not be read"):
+        extract_text("broken.pdf", b"%PDF-1.4 this is not a real pdf")

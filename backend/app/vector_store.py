@@ -13,6 +13,9 @@ class Hit:
 
 
 class VectorStore:
+    # Keeps each upsert request well under Qdrant's 32 MiB request size limit.
+    BATCH_SIZE = 256
+
     def __init__(self, client: QdrantClient, collection: str, dimension: int):
         self.client = client
         self.collection = collection
@@ -32,7 +35,10 @@ class VectorStore:
             )
             for text, vector in zip(chunks, vectors, strict=True)
         ]
-        self.client.upsert(collection_name=self.collection, points=points)
+        for start in range(0, len(points), self.BATCH_SIZE):
+            self.client.upsert(
+                collection_name=self.collection, points=points[start : start + self.BATCH_SIZE]
+            )
         return len(points)
 
     def search(self, vector: list[float], limit: int) -> list[Hit]:

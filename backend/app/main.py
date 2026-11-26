@@ -6,6 +6,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
+from starlette.concurrency import run_in_threadpool
 
 from .config import load_settings
 from .embeddings import FastEmbedEmbedder
@@ -60,13 +61,17 @@ def create_app(service: RagService | None = None, max_upload_bytes: int | None =
 
     @app.post("/upload")
     async def upload(file: UploadFile, request: Request) -> dict:
-        data = await file.read()
+        # Read at most one byte past the limit, so an oversized file is never fully loaded.
+        data = await file.read(limit + 1)
         if not data:
             raise HTTPException(status_code=400, detail="The file is empty")
         if len(data) > limit:
             raise HTTPException(status_code=413, detail="The file is too large")
         try:
-            chunks = request.app.state.rag.ingest(file.filename or "upload", data)
+            # Ingestion is CPU and network bound; run it off the event loop.
+            chunks = await run_in_threadpool(
+                request.app.state.rag.ingest, file.filename or "upload", data
+            )
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return {"filename": file.filename, "chunks": chunks}

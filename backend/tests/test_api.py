@@ -61,3 +61,9 @@ def test_empty_file_is_rejected(client):
 
 def test_too_large_file_is_rejected(client):
     assert upload(client, content=b"a" * (1024 * 1024 + 1)).status_code == 413
+
+
+def test_broken_pdf_upload_returns_400(client):
+    response = upload(client, name="broken.pdf", content=b"%PDF-1.4 not really a pdf")
+
+    assert response.status_code == 400
