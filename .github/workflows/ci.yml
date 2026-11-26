@@ -38,3 +38,19 @@ jobs:
       - run: pip install ruff==0.17.6
       - run: ruff check .
       - run: ruff format --check .
+
+  images:
+    name: Docker images
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -t genai-rag-backend:ci backend
+      - run: docker build -t genai-rag-frontend:ci frontend
+      - name: Images run as a non-root user
+        run: |
+          for image in genai-rag-backend:ci genai-rag-frontend:ci; do
+            user=$(docker run --rm --entrypoint whoami "$image")
+            echo "$image runs as $user"
+            test "$user" != root
+          done
