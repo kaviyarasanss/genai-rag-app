@@ -41,6 +41,7 @@ services:
     environment:
       QDRANT_URL: http://qdrant:6333
       ROOT_PATH: /api
+      METRICS_PORT: "9100"
     depends_on:
       qdrant:
         condition: service_healthy
@@ -78,8 +79,16 @@ services:
   grafana:
     image: grafana/grafana:13.3.2
     profiles: [monitoring]
+    # Refuse to start with no admin password, instead of falling back to admin/admin.
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        [ -n "$$GF_SECURITY_ADMIN_PASSWORD" ]
+        || { echo "Set GRAFANA_ADMIN_PASSWORD in .env to use the monitoring profile" >&2; exit 1; };
+        exec /run.sh
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
       # Served by Nginx under /grafana/.
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"

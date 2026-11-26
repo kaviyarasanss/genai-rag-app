@@ -2,7 +2,7 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  # Scraped over the internal network; /metrics is not reachable through Nginx.
+  # The backend serves metrics on its own port (9100), which Nginx never proxies.
   - job_name: backend
     static_configs:
-      - targets: ["backend:8000"]
+      - targets: ["backend:9100"]
